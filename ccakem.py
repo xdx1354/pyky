@@ -9,9 +9,14 @@ from util import cast_to_byte
 
 def kem_keygen512():
     """
+    Generuje klucze dla poziomu 512
+    zwraca (klucz prywatny, klucz publiczny) jako tablice bajtów
+
+
     generate kyber keys for security level 512
     :return: tuple of (private_key, public key), each a byte array
     """
+
     params_k = 2
     sk_, pk = generate_kyber_keys(params_k)
 

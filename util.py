@@ -1,35 +1,41 @@
 from params import KYBER_POLY_BYTES, KYBER_N, KYBER_ETAK512, KYBER_ETAK768_1024, KYBER_Q_INV, KYBER_Q
 
+
 def cast_to_short(x):
-    y = x & 0xffff
-    if y >= 2**15:
-        y -= 2**16
+    y = x & 0xffff  # operacja AND na każdym bicie x i 32bitach samych jedynek
+    if y >= 2 ** 15:  # jesli y > 2^15            to ma być signed short, więc chyba chodzi o U2. Jeśli jest wieksze niż 2^15 to znaczy, że ma 1 z przodu
+        y -= 2 ** 16  # to y = y - 2^16
     return y
 
+
 def cast_to_int32(x):
-    y = x & 0xffffffff
-    if y >= 2**31:
-        y -= 2**32
+    y = x & 0xffffffff  # operacja AND na x i 32 bitach jedynek
+    if y >= 2 ** 31:
+        y -= 2 ** 32
     return y
+
 
 def cast_to_long64(x):
     y = x & 0xffffffffffffffff
-    if y >= 2**63:
-        y -= 2**64
+    if y >= 2 ** 63:
+        y -= 2 ** 64
     return y
+
 
 def cast_to_byte(x):
     y = x & 0xff
-    if y >= 2**7:
-        y -= 2**8
+    if y >= 2 ** 7:
+        y -= 2 ** 8
     return y
 
+
 def convert_byte_to_32_bit_unsigned_int(x):
-    r = x[0] & 0xff # to mask negative values
+    r = x[0] & 0xff  # to mask negative values
     r |= (x[1] & 0xff) << 8
     r |= (x[2] & 0xff) << 16
     r |= (x[3] & 0xff) << 24
     return r
+
 
 def convert_byte_to_24_bit_unsigned_int(x):
     r = x[0] & 0xff
@@ -37,15 +43,16 @@ def convert_byte_to_24_bit_unsigned_int(x):
     r |= (x[2] & 0xff) << 16
     return r
 
+
 def cbd(buf, paramsK):
-    r = [ 0 for x in range(0, KYBER_POLY_BYTES)]
-    if(paramsK == 2):
+    r = [0 for x in range(0, KYBER_POLY_BYTES)]
+    if paramsK == 2:
         for i in range(0, KYBER_N // 4):
             t = convert_byte_to_24_bit_unsigned_int(buf[3 * i:])
             d = t & 0x00249249
             d = d + ((t >> 1) & 0x00249249)
             d = d + ((t >> 2) & 0x00249249)
-            for j in range(0,4):
+            for j in range(0, 4):
                 a = ((d >> (6 * j + 0)) & 0x7)
                 b = ((d >> (6 * j + KYBER_ETAK512)) & 0x7)
                 r[4 * i + j] = (a - b)
@@ -54,11 +61,12 @@ def cbd(buf, paramsK):
             t = convert_byte_to_32_bit_unsigned_int(buf[4 * i:])
             d = t & 0x55555555
             d = d + ((t >> 1) & 0x55555555)
-            for j in range(0,8):
+            for j in range(0, 8):
                 a = ((d >> (4 * j + 0)) & 0x3)
                 b = ((d >> (4 * j + KYBER_ETAK768_1024)) & 0x3)
                 r[8 * i + j] = (a - b)
     return r
+
 
 def montgomery_reduce(a):
     """
@@ -67,11 +75,12 @@ def montgomery_reduce(a):
     """
     u = cast_to_short(a * KYBER_Q_INV)
     t = (u * KYBER_Q)
-    if u >= 2**31:
-        u -= 2**32
+    if u >= 2 ** 31:
+        u -= 2 ** 32
     t = a - t
     t >>= 16
     return t
+
 
 def barrett_reduce(a):
     """

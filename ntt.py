@@ -10,7 +10,7 @@ NTT_ZETAS = [
     1653, 3083, 778, 1159, 3182, 2552, 1483, 2727, 1119, 1739, 644, 2457, 349,
     418, 329, 3173, 3254, 817, 1097, 603, 610, 1322, 2044, 1864, 384, 2114, 3193,
     1218, 1994, 2455, 220, 2142, 1670, 2144, 1799, 2051, 794, 1819, 2475, 2459,
-    478, 3221, 3021, 996, 991, 958, 1869, 1522, 1628 ]
+    478, 3221, 3021, 996, 991, 958, 1869, 1522, 1628]
 
 NTT_ZETAS_INV = [
     1701, 1807, 1460, 2371, 2338, 2333, 308, 108, 2851, 870, 854, 1510, 2535,
@@ -22,7 +22,7 @@ NTT_ZETAS_INV = [
     1860, 3203, 1162, 1618, 666, 320, 8, 2813, 1544, 282, 1838, 1293, 2314, 552,
     2677, 2106, 1571, 205, 2918, 1542, 2721, 2597, 2312, 681, 130, 1602, 1871,
     829, 2946, 3065, 1325, 2756, 1861, 1474, 1202, 2367, 3147, 1752, 2707, 171,
-    3127, 3042, 1907, 1836, 1517, 359, 758, 1441 ]
+    3127, 3042, 1907, 1836, 1517, 359, 758, 1441]
 
 
 def modq_mul_mont(a, b):
@@ -61,6 +61,7 @@ def ntt(r):
         l >>= 1
     return r
 
+
 def inv_ntt(r):
     j = 0
     k = 0
@@ -73,22 +74,23 @@ def inv_ntt(r):
             j = start
             while j < (start + l):
                 t = r[j]
-                t_rjl = cast_to_short(t + r[j+l])
+                t_rjl = cast_to_short(t + r[j + l])
                 r[j] = barrett_reduce(t_rjl)
-                r[j+l] = cast_to_short(t - r[j+l])
-                r[j+l] = modq_mul_mont(zeta, r[j+l])
+                r[j + l] = cast_to_short(t - r[j + l])
+                r[j + l] = modq_mul_mont(zeta, r[j + l])
                 j += 1
             start = j + l
         l <<= 1
-    for j in range(0,256):
+    for j in range(0, 256):
         r[j] = modq_mul_mont(r[j], NTT_ZETAS_INV[127])
     return r
 
+
 def base_multiplier(a0, a1, b0, b1, zeta):
-    r = [ 0 for x in range(0,2)]
+    r = [0 for x in range(0, 2)]
     r[0] = modq_mul_mont(a1, b1)
     r[0] = modq_mul_mont(r[0], zeta)
-    r[0] = cast_to_short(r[0] + modq_mul_mont(a0,b0))
+    r[0] = cast_to_short(r[0] + modq_mul_mont(a0, b0))
     r[1] = modq_mul_mont(a0, b1)
     r[1] = cast_to_short(r[1] + modq_mul_mont(a1, b0))
     return r

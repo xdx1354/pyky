@@ -15,11 +15,11 @@ def generate_kyber_keys(params_k, seed = None):
     :param params_k: int
     :return: tuple of (byte array privkey, byte array pubkey)
     """
-    skpv = generate_new_polyvec(params_k)
-    pkpv = generate_new_polyvec(params_k)
-    e = generate_new_polyvec(params_k)
-    public_seed = [ 0 for x in range(0, KYBER_SYM_BYTES)]
-    noise_seed = [ 0 for x in range(0, KYBER_SYM_BYTES)]
+    skpv = generate_new_polyvec(params_k)                       # genereowanie nowego wielomianu
+    pkpv = generate_new_polyvec(params_k)                       # genereowanie nowego wielomianu
+    e = generate_new_polyvec(params_k)                          # genereowanie nowego wielomianu
+    public_seed = [ 0 for x in range(0, KYBER_SYM_BYTES)]       # wprowadzanie błędów?
+    noise_seed = [ 0 for x in range(0, KYBER_SYM_BYTES)]        # --||--
     h = SHA3_512.new()
     public_seed = get_random_bytes(KYBER_SYM_BYTES)
     if(seed != None):
@@ -54,6 +54,7 @@ def generate_kyber_keys(params_k, seed = None):
     packed_pub_key = pack_public_key(pkpv, public_seed, params_k)
     return (packed_priv_key, packed_pub_key)
 
+
 def encrypt(m, pubkey, coins, params_k):
     """
     encrypt the given message using Kyber
@@ -63,29 +64,68 @@ def encrypt(m, pubkey, coins, params_k):
     :param params_k: int
     :return: ciphertext, byte array
     """
-    sp = generate_new_polyvec(params_k)
-    ep = generate_new_polyvec(params_k)
-    bp = generate_new_polyvec(params_k)
-    unpacked_public_key, pubkey_seed = unpack_public_key(pubkey, params_k)
-    k = poly_from_data(m)
-    at = generate_matrix(pubkey_seed[0:KYBER_SYM_BYTES], True, params_k)
-    for i in range(0, params_k):
-        sp[i] = get_noise_poly(coins, cast_to_byte(i), params_k)
-        ep[i] = get_noise_poly(coins, cast_to_byte(i+params_k), 3)
-    epp = get_noise_poly(coins, cast_to_byte(params_k*2),3)
-    sp = polyvec_ntt(sp, params_k)
-    sp = polyvec_reduce(sp, params_k)
-    for i in range(0, params_k):
-        bp[i] = polyvec_pointwise_acc_mont(at[i], sp, params_k)
-    v = polyvec_pointwise_acc_mont(unpacked_public_key, sp, params_k)
-    bp = polyvec_inv_ntt(bp, params_k)
-    v = poly_inv_ntt_mont(v)
 
-    bp = polyvec_add(bp, ep, params_k)
-    v = poly_add(poly_add(v, epp), k)
-    bp = polyvec_reduce(bp, params_k)
-    ret = pack_ciphertext(bp, poly_reduce(v), params_k)
+    # Generate new polynomial vectors
+    r_daszek = generate_new_polyvec(params_k)  # Secret polynomial vector       # wektor
+    e1 = generate_new_polyvec(params_k)  # Error polynomial vector
+    u = generate_new_polyvec(params_k)  # Encrypted polynomial vector ??
+
+    # Unpack the public key and retrieve the pubkey seed
+    unpacked_public_key, pubkey_seed = unpack_public_key(pubkey, params_k)      # chyba t_daszek, czy transp ??
+                                                                                # public_seed to moze byc ρ ??
+
+    # Convert the message to a polynomial
+    mess = poly_from_data(m)
+
+    # Generate the matrix A (used in encryption) from the pubkey seed
+    A = generate_matrix(pubkey_seed[0:KYBER_SYM_BYTES], True, params_k)         # linie 4-8, czy transp??
+
+    # Generate noise polynomials for sp and ep
+    for i in range(0, params_k):
+        r_daszek[i] = get_noise_poly(coins, cast_to_byte(i), params_k)          # linie 9-12
+        e1[i] = get_noise_poly(coins, cast_to_byte(i + params_k), 3)            # linie 13-16
+
+    # Generate noise polynomial for epp
+    e2 = get_noise_poly(coins, cast_to_byte(params_k * 2), 3)                   # linia 17 - generowanie wielomianu
+
+    # Perform NTT (Number Theoretic Transform) on sp
+    r_daszek = polyvec_ntt(r_daszek, params_k)                                  # linia 18 docs
+
+    # Reduce the coefficients of sp
+    r_daszek = polyvec_reduce(r_daszek, params_k)                                # to chyba tez w ramach linii 18
+
+    # Mnozenie ^A^T @ ^r
+    for i in range(0, params_k):                                                # linia 19
+        u[i] = polyvec_pointwise_acc_mont(A[i], r_daszek, params_k)             # do czego jest to potrzebne
+    # chyba jest to realizacja operacji kółka w nawiasach NTT
+
+    # wykonanie NTT^-1 nad u
+
+    u = polyvec_inv_ntt(u, params_k)                                            # linia 19 (czesc z ntt) (ta funkcja bo to wektor wielomianów)
+    # dodanie szumow e1 do wektora u
+    u = polyvec_add(u, e1, params_k)                                            # linia 19 + e1
+
+    # Redukcja wspolczynikow wektora wielomianow
+    u = polyvec_reduce(u, params_k)                                             # na wektorach wielomianów trzeba wywolywac te funkcje recznie po kazdym mnozeniu
+
+
+
+    # chyba jest to realizacja operacji kółka w nawiasach NTT
+    v = polyvec_pointwise_acc_mont(unpacked_public_key, r_daszek, params_k)     # linia 20
+
+    # Perform inverse NTT on bp and v
+    v = poly_inv_ntt_mont(v)                                                    # linia 20 docs (czesci z NTT^-1) (ta funkcja bo to jeden wielomian)
+
+    # Dodanie szumu e2 i WIADOMOSCI
+    v = poly_add(poly_add(v, e2), mess)                                         # linia 20  +e2 + Decompressed(Decode(m), 1)
+
+
+    # Pack the ciphertext
+    ret = pack_ciphertext(u, poly_reduce(v), params_k)     # linia 23 docs
+
     return ret
+
+
 
 def decrypt(packed_ciphertext, private_key, params_k):
     """
