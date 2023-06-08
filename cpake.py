@@ -136,27 +136,29 @@ def encrypt2(m, pubkey, coins, params_k):
     """
 
     # Generate new polynomial vectors
-    r_daszek = generate_new_polyvec(params_k)  # Secret polynomial vector       # wektor
-    r = polyvec_ntt(r_daszek, params_k) # zamiana na zwykle r ŹLE POWINNO BYĆ REVERSED NTT!!!!!!
+    r = generate_new_polyvec(params_k)  # Secret polynomial vector       # wektor
+    # r = polyvec_inv_ntt(r_daszek, params_k) # zamiana na zwykle r
 
     e1 = generate_new_polyvec(params_k)  # Error polynomial vector
     u = generate_new_polyvec(params_k)  # Encrypted polynomial vector ??
 
     # Unpack the public key and retrieve the pubkey seed
-    unpacked_public_key, pubkey_seed = unpack_public_key(pubkey, params_k)  # chyba t_daszek, czy transp ??,  public_seed to moze byc ρ ??
-    t = polyvec_ntt(unpacked_public_key, params_k)  # zamiana na zwykle t ŹLE POWINNO BYĆ REVERSED NTT!!!!!!
+    t_daszek, pubkey_seed = unpack_public_key(pubkey, params_k)  # chyba t_daszek, czy transp ??,  public_seed to moze byc ρ ??
+    t = polyvec_inv_ntt(t_daszek, params_k)  # zamiana na zwykle t
 
     # Convert the message to a polynomial
     mess = poly_from_data(m)
 
     # Generate the matrix A (used in encryption) from the pubkey seed
     A_daszek = generate_matrix(pubkey_seed[0:KYBER_SYM_BYTES], True, params_k)         # linie 4-8, czy transp??
-    A = polyvec_ntt(A_daszek, params_k) # zamiana na zwykle A, ŹLE POWINNO BYĆ REVERSED NTT!!!!!!
+    A = generate_matrix(pubkey_seed[0:KYBER_SYM_BYTES], True, params_k)                 # tworze takiej samej wielkosci macierz
+    for i in range(0, params_k):
+        A[i] = polyvec_inv_ntt(A_daszek[i], params_k) # zamiana na zwykle A,
 
     #BEZ ZMIAN
     # Generate noise polynomials for sp and ep
     for i in range(0, params_k):
-        r_daszek[i] = get_noise_poly(coins, cast_to_byte(i), params_k)  # linie 9-12
+        r[i] = get_noise_poly(coins, cast_to_byte(i), params_k)  # linie 9-12
         e1[i] = get_noise_poly(coins, cast_to_byte(i + params_k), 3)  # linie 13-16
 
     # Generate noise polynomial for epp
@@ -187,3 +189,4 @@ def decrypt(packed_ciphertext, private_key, params_k):
     mp = poly_reduce(mp)
     ret = poly_to_msg(mp)
     return ret
+
