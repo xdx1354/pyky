@@ -1,6 +1,6 @@
 from poly import generate_new_polyvec, get_noise_poly, polyvec_ntt, polyvec_reduce, polyvec_pointwise_acc_mont, \
     poly_to_mont, polyvec_add, poly_from_data, poly_inv_ntt_mont, polyvec_inv_ntt, poly_add, poly_reduce, poly_sub, \
-    poly_to_msg
+    poly_to_msg, polyvec_plain_mul
 from params import KYBER_SYM_BYTES
 from Crypto.Hash import SHA3_512
 from Crypto.Random import get_random_bytes
@@ -78,7 +78,7 @@ def encrypt(m, pubkey, coins, params_k):
     mess = poly_from_data(m)
 
     # Generate the matrix A (used in encryption) from the pubkey seed
-    A = generate_matrix(pubkey_seed[0:KYBER_SYM_BYTES], True, params_k)         # linie 4-8, czy transp??
+    A_daszek = generate_matrix(pubkey_seed[0:KYBER_SYM_BYTES], True, params_k)         # linie 4-8, czy transp??
 
     # Generate noise polynomials for sp and ep
     for i in range(0, params_k):
@@ -96,7 +96,7 @@ def encrypt(m, pubkey, coins, params_k):
 
     # Mnozenie ^A^T * ^r
     for i in range(0, params_k):                                                # linia 19
-        u[i] = polyvec_pointwise_acc_mont(A[i], r_daszek, params_k)             # do czego jest to potrzebne
+        u[i] = polyvec_pointwise_acc_mont(A_daszek[i], r_daszek, params_k)
     # chyba jest to realizacja operacji kółka w nawiasach NTT
 
     # wykonanie NTT^-1 nad u
@@ -167,8 +167,20 @@ def encrypt2(m, pubkey, coins, params_k):
     # TU ZASTEPUJE LINIE 18 - 20
     # u =  A^T r + e
 
+    # Mnozenie A^T * r
+    for i in range(0, params_k):  # linia 19
+        u[i] = polyvec_plain_mul(A[i], r, params_k)
+
+    u = polyvec_add(u, e1, params_k)
+
     # v = t^T r + e + mess
 
+    v = polyvec_plain_mul(t, r, params_k)
+    v = poly_add(poly_add(v, e2), mess)
+
+    ret = pack_ciphertext(u, poly_reduce(v), params_k)  # linia 23 docs
+
+    return ret
 
 
 

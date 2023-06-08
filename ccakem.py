@@ -1,5 +1,5 @@
 from Crypto.Random import get_random_bytes
-from cpake import generate_kyber_keys, encrypt, decrypt
+from cpake import generate_kyber_keys, encrypt, decrypt, encrypt2
 from params import KYBER_512SK_BYTES, KYBER_768SK_BYTES, KYBER_1024SK_BYTES, KYBER_SYM_BYTES, KYBER_SS_BYTES, \
     KYBER_INDCPA_SECRETKEY_BYTES_K512, KYBER_INDCPA_PUBLICKEYBYTES_K512, \
     KYBER_INDCPA_SECRETKEY_BYTES_K768, KYBER_INDCPA_PUBLICKEYBYTES_K768, \
@@ -115,7 +115,7 @@ def kem_encaps512(pubkey, seed=None):
     kr = [ cast_to_byte(x) for x in kr]
     K = kr[0:KYBER_SYM_BYTES]
     r = [ kr[i + KYBER_SYM_BYTES] for i in range(0, len(kr) - KYBER_SYM_BYTES)]
-    c = encrypt(Hm, pubkey, r, params_k)
+    c = encrypt2(Hm, pubkey, r, params_k)
 
     md = SHA3_256.new()
     md.update(bytearray([x & 0xFF for x in c]))
@@ -165,7 +165,7 @@ def kem_encaps768(pubkey, seed=None):
     kr = [ cast_to_byte(x) for x in kr]
     K = kr[0:KYBER_SYM_BYTES]
     r = [ kr[i + KYBER_SYM_BYTES] for i in range(0, len(kr) - KYBER_SYM_BYTES)]
-    c = encrypt(Hm, pubkey, r, params_k)
+    c = encrypt2(Hm, pubkey, r, params_k)
 
     md = SHA3_256.new()
     md.update(bytearray([x & 0xFF for x in c]))
@@ -215,7 +215,7 @@ def kem_encaps1024(pubkey, seed=None):
     kr = [ cast_to_byte(x) for x in kr]
     K = kr[0:KYBER_SYM_BYTES]
     r = [ kr[i + KYBER_SYM_BYTES] for i in range(0, len(kr) - KYBER_SYM_BYTES)]
-    c = encrypt(Hm, pubkey, r, params_k)
+    c = encrypt2(Hm, pubkey, r, params_k)
 
     md = SHA3_256.new()
     md.update(bytearray([x & 0xFF for x in c]))
@@ -249,7 +249,7 @@ def kem_decaps512(private_key, ciphertext):
     K_r_ = md512.digest()
     K_r_ = [ cast_to_byte(x) for x in K_r_ ]
     r_ = K_r_[-KYBER_SYM_BYTES:]
-    cmp = encrypt(m_, pk, r_, params_k)
+    cmp = encrypt2(m_, pk, r_, params_k)
     md = SHA3_256.new()
     md.update(bytearray([x & 0xff for x in ciphertext]))
     Hc = md.digest()
@@ -285,7 +285,7 @@ def kem_decaps768(private_key, ciphertext):
     K_r_ = md512.digest()
     K_r_ = [ cast_to_byte(x) for x in K_r_ ]
     r_ = K_r_[-KYBER_SYM_BYTES:]
-    cmp = encrypt(m_, pk, r_, params_k)
+    cmp = encrypt2(m_, pk, r_, params_k)
     md = SHA3_256.new()
     md.update(bytearray([x & 0xff for x in ciphertext]))
     Hc = md.digest()
@@ -321,7 +321,7 @@ def kem_decaps1024(private_key, ciphertext):
     K_r_ = md512.digest()
     K_r_ = [ cast_to_byte(x) for x in K_r_ ]
     r_ = K_r_[-KYBER_SYM_BYTES:]
-    cmp = encrypt(m_, pk, r_, params_k)
+    cmp = encrypt2(m_, pk, r_, params_k)
     md = SHA3_256.new()
     md.update(bytearray([x & 0xff for x in ciphertext]))
     Hc = md.digest()

@@ -1,7 +1,10 @@
+from sympy import Integer
+
 from params import KYBER_POLY_BYTES, KYBER_N, KYBER_ETAK512, KYBER_ETAK768_1024, KYBER_Q_INV, KYBER_Q
 
 
 def cast_to_short(x):
+    x = int(x)
     y = x & 0xffff  # operacja AND na każdym bicie x i 32bitach samych jedynek
     if y >= 2 ** 15:  # jesli y > 2^15            to ma być signed short, więc chyba chodzi o U2. Jeśli jest wieksze niż 2^15 to znaczy, że ma 1 z przodu
         y -= 2 ** 16  # to y = y - 2^16
